@@ -26,9 +26,9 @@
             uViewMatrix *
             uWorldMatrix *
             vec4(aVertexPosition, 1.0); // treat the vertex as a point, multiply right to left
-            vColor = aVertexColor;
-
+        
         vColor = vec3(0.0, 0.0, 0.0);
+        vColor = aVertexColor;
     }
 </script>
 
@@ -203,6 +203,21 @@
         triangleGeometry.bufferItemCount = 3;
 
         // todo
+        var vertexColorBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertexColorBuffer);
+        
+        var verticesColors=[
+            1.0, 0.0, 0.0,
+            0.0, 1.0, 0.0,
+            0.0, 0.0, 1.0
+        ];
+        
+        
+       
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verticesColors), gl.STATIC_DRAW);
+
+        triangleGeometry.vertexColorBuffer=vertexColorBuffer;
+
         // 1. create color buffer
         // 2. bind color buffer
         // 3. create color array
@@ -278,16 +293,17 @@
         // 60 degrees per second
         var degrees = secondsElapsedSinceStart * 60;
 
-        
-        
+        newmatrix= new Matrix4();
+        newmatrix=newmatrix.makeRotationY(degrees);
         // todo #7
         // - update the triangle geometry world matrix here (used to place the triangle into world space)
         triangleGeometry.worldMatrix = new Matrix4();
+        // triangleGeometry.worldMatrix.makeRotationY(degrees);
         triangleGeometry.worldMatrix.makeTranslation(0,0,-7); // (x,y, -z)
         
         // - set view matrix to identity
-        //viewMatrix = new Matrix4();
-        //console.log(viewMatrix);
+        viewMatrix = new Matrix4();
+        console.log(viewMatrix);
         // - set the projection matrix using values from online guide
         projectionMatrix = new Matrix4();
         projectionMatrix.makePerspective(45,1.5,0.1,1000)
@@ -302,21 +318,7 @@
         );
 
         // todo #10 - map the color buffer similar to the position buffer above
-        var vertexColorBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, vertexColorBuffer);
         
-        var verticesColors=[
-            1.0, 0.0, 0.0,
-            0.0, 1.0, 0.0,
-            0.0, 0.0, 1.0
-        ];
-        
-        
-       
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verticesColors), gl.STATIC_DRAW);
-
-        triangleGeometry.vertexColorBuffer=vertexColorBuffer;
-
         gl.vertexAttribPointer(
             triangleGeometry.shaderProgram.vertexPositionAttribute,
             9,
@@ -328,7 +330,7 @@
         
         gl.bindBuffer(gl.ARRAY_BUFFER, triangleGeometry.vertexColorBuffer);
         gl.vertexAttribPointer(
-            triangleGeometry.shaderProgram.verticesColors,
+            triangleGeometry.shaderProgram.vertexColorAttribute,
             3,
             gl.FLOAT,
             gl.FALSE,

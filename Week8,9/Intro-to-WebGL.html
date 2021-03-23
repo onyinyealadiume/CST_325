@@ -26,7 +26,8 @@
             uViewMatrix *
             uWorldMatrix *
             vec4(aVertexPosition, 1.0); // treat the vertex as a point, multiply right to left
-        
+            
+
         vColor = vec3(0.0, 0.0, 0.0);
         vColor = aVertexColor;
     }
@@ -46,12 +47,16 @@
 <script type="text/javascript">
 
     var gl;
+    
 
     // variables for us to keep track of time
     var time = {
       secondsElapsedSinceStart: 0,
+      start: Date.now(),
       lastFrameTime: 0
     };
+    
+    
 
     // The core data associated with the triangle that we will need to render it
     var triangleGeometry = {
@@ -93,6 +98,7 @@
         if (gl) {
             updateAndRender();
         }
+        
     }
 
     // -------------------------------------------------------------------------
@@ -112,11 +118,13 @@
         if (!gl) {
             alert("Could not initialise WebGL, sorry :-(");
         }
+        
     }
 
     // -------------------------------------------------------------------------
     function createShaders() {
         // Get the objects representing individual shaders
+        
         var vertexShaderText = document.getElementById("shader-vs").textContent;
 
         // todo #4 - uncomment when directed
@@ -159,6 +167,7 @@
         shaderProgram.worldMatrixUniform = gl.getUniformLocation(shaderProgram, "uWorldMatrix");
         shaderProgram.viewMatrixUniform = gl.getUniformLocation(shaderProgram, "uViewMatrix");
         shaderProgram.projectionMatrixUniform = gl.getUniformLocation(shaderProgram, "uProjectionMatrix");
+        
     }
 
     // -------------------------------------------------------------------------
@@ -203,27 +212,27 @@
         triangleGeometry.bufferItemCount = 3;
 
         // todo
-        var vertexColorBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, vertexColorBuffer);
-        
-        var verticesColors=[
-            1.0, 0.0, 0.0,
-            0.0, 1.0, 0.0,
-            0.0, 0.0, 1.0
-        ];
-        
-        
-       
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verticesColors), gl.STATIC_DRAW);
-
-        triangleGeometry.vertexColorBuffer=vertexColorBuffer;
-
         // 1. create color buffer
         // 2. bind color buffer
         // 3. create color array
         // 4. "buffer" color data
         // 5. store a reference to the color buffer on the triangleGeometry object
         //    triangleGeometry.colorBuffer = ??;
+
+         
+       var vertexColorBuffer = gl.createBuffer();
+        
+       gl.bindBuffer(gl.ARRAY_BUFFER, vertexColorBuffer);
+
+        var verticesColors=[
+            1.0, 0.0, 0.0,
+            0.0, 1.0, 0.0,
+            0.0, 0.0, 1.0
+        ];
+       
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verticesColors), gl.STATIC_DRAW);
+        triangleGeometry.vertexColorBuffer=vertexColorBuffer;
+        
     }
 
     // -------------------------------------------------------------------------
@@ -266,12 +275,13 @@
         lineGridGeometry.positionBuffer = positionBuffer;
         lineGridGeometry.colorBuffer = colorBuffer;
         lineGridGeometry.bufferItemCount = 2 * 21 * 2;
+        
     }
 
     // -------------------------------------------------------------------------
     function updateAndRender() {
         requestAnimationFrame(updateAndRender);
-
+        time.secondsElapsedSinceStart=(Date.now()-time.start);
         // todo #2
         // specify what portion of the canvas we want to draw to (all of it, full width and height)
         // uncomment when ready to implement
@@ -282,24 +292,34 @@
         // this is a new frame so let's clear out whatever happened last frame
         gl.clearColor(0.707, 0.707, 1, 1.0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
+        
+        
+        
          renderTriangle(0);
          renderLines();
+         
+         
     }
+  
 
     // -------------------------------------------------------------------------
     function renderTriangle(secondsElapsedSinceStart) {
         // calculate the number of degrees we should have rotated given how much time has elapsed
         // 60 degrees per second
-        var degrees = secondsElapsedSinceStart * 60;
+       // var degrees = secondsElapsedSinceStart * 60;
+       
+       
+        var degrees = time.secondsElapsedSinceStart/1000 * 60;
+        
 
-        newmatrix= new Matrix4();
-        newmatrix=newmatrix.makeRotationY(degrees);
+        rotationmatrix= new Matrix4();
+        rotationmatrix.makeRotationY(degrees);
+        
         // todo #7
         // - update the triangle geometry world matrix here (used to place the triangle into world space)
-        triangleGeometry.worldMatrix = new Matrix4();
-        // triangleGeometry.worldMatrix.makeRotationY(degrees);
-        triangleGeometry.worldMatrix.makeTranslation(0,0,-7); // (x,y, -z)
+        triangleGeometry.worldMatrix= new Matrix4();
+        triangleGeometry.worldMatrix.makeTranslation(0,0,-7);
+        triangleGeometry.worldMatrix.multiply(rotationmatrix);// (x,y, -z)
         
         // - set view matrix to identity
         viewMatrix = new Matrix4();
@@ -307,7 +327,9 @@
         // - set the projection matrix using values from online guide
         projectionMatrix = new Matrix4();
         projectionMatrix.makePerspective(45,1.5,0.1,1000)
+
         gl.bindBuffer(gl.ARRAY_BUFFER, triangleGeometry.positionBuffer);
+
         gl.vertexAttribPointer(
             triangleGeometry.shaderProgram.vertexPositionAttribute,
             3,
@@ -318,15 +340,7 @@
         );
 
         // todo #10 - map the color buffer similar to the position buffer above
-        
-        gl.vertexAttribPointer(
-            triangleGeometry.shaderProgram.vertexPositionAttribute,
-            9,
-            gl.FLOAT,
-            gl.FALSE,
-            0, // stride - used for mixing data in a single buffer, ignore
-            0  // offset - used for mixing data in a single buffer, ignore
-        );
+       
         
         gl.bindBuffer(gl.ARRAY_BUFFER, triangleGeometry.vertexColorBuffer);
         gl.vertexAttribPointer(
@@ -339,14 +353,14 @@
         );
 
         
-
-
         // Send our matrices to the shader
         gl.uniformMatrix4fv(shaderProgram.worldMatrixUniform, false, triangleGeometry.worldMatrix.clone().transpose().elements);
         gl.uniformMatrix4fv(shaderProgram.viewMatrixUniform, false, viewMatrix.clone().transpose().elements);
         gl.uniformMatrix4fv(shaderProgram.projectionMatrixUniform, false, projectionMatrix.clone().transpose().elements);
 
         gl.drawArrays(gl.TRIANGLES, 0, triangleGeometry.bufferItemCount);
+
+        
     }
 
     // -------------------------------------------------------------------------
